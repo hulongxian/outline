@@ -36,6 +36,23 @@ describe("JiraUtils", () => {
     });
   });
 
+  describe("configuredUrlsMatch", () => {
+    it("matches URLs with the same hostname", () => {
+      expect(
+        JiraUtils.configuredUrlsMatch(
+          "https://jira.example.com",
+          "https://jira.example.com/"
+        )
+      ).toBe(true);
+      expect(
+        JiraUtils.configuredUrlsMatch(
+          "https://jira.example.com",
+          "https://other.example.com"
+        )
+      ).toBe(false);
+    });
+  });
+
   describe("statusColorFromCategory", () => {
     it("maps known colors", () => {
       expect(JiraUtils.statusColorFromCategory("green")).toBe("#00875A");

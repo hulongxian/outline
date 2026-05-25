@@ -54,6 +54,21 @@ export class JiraUtils {
   }
 
   /**
+   * Returns whether two configured Jira base URLs refer to the same host.
+   *
+   * @param urlA - First Jira base URL.
+   * @param urlB - Second Jira base URL.
+   * @return True when both URLs share the same hostname.
+   */
+  public static configuredUrlsMatch(urlA: string, urlB: string): boolean {
+    try {
+      return jiraUrlMatchesIntegration(new URL(normalizeJiraUrl(urlA)), urlB);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Maps Jira status category color names to vivid accent colors for badges.
    *
    * @param colorName - Jira statusCategory.colorName value.

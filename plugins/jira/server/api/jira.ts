@@ -71,29 +71,59 @@ router.post(
     }
 
     try {
+      const teamJiraIntegrations = (await Integration.findAll({
+        where: {
+          service: IntegrationService.Jira,
+          teamId: user.teamId,
+        },
+        transaction,
+      })) as Integration<IntegrationType.Embed>[];
+
+      const findIntegrationForUrl = () =>
+        teamJiraIntegrations.find((intg) => {
+          const configuredUrl = intg.settings?.jira?.url;
+          if (!configuredUrl) {
+            return false;
+          }
+          return JiraUtils.urlMatchesIntegration(new URL(url), configuredUrl);
+        }) ?? null;
+
+      const assertNoDuplicateUrl = (excludeId?: string) => {
+        const duplicate = teamJiraIntegrations.find((intg) => {
+          if (excludeId && intg.id === excludeId) {
+            return false;
+          }
+          const configuredUrl = intg.settings?.jira?.url;
+          if (!configuredUrl) {
+            return false;
+          }
+          return JiraUtils.urlMatchesIntegration(new URL(url), configuredUrl);
+        });
+
+        if (duplicate) {
+          throw ValidationError(
+            "A Jira integration for this URL already exists"
+          );
+        }
+      };
+
       let integration: Integration<IntegrationType.Embed> | null = null;
 
       if (integrationId) {
-        integration = (await Integration.findOne({
-          where: {
-            id: integrationId,
-            service: IntegrationService.Jira,
-            teamId: user.teamId,
-          },
-          transaction,
-        })) as Integration<IntegrationType.Embed> | null;
+        integration =
+          teamJiraIntegrations.find((intg) => intg.id === integrationId) ??
+          null;
 
         if (!integration) {
           throw ValidationError("Integration not found");
         }
+
+        assertNoDuplicateUrl(integration.id);
       } else {
-        integration = (await Integration.findOne({
-          where: {
-            service: IntegrationService.Jira,
-            teamId: user.teamId,
-          },
-          transaction,
-        })) as Integration<IntegrationType.Embed> | null;
+        integration = findIntegrationForUrl();
+        if (!integration) {
+          assertNoDuplicateUrl();
+        }
       }
 
       const existingAuth = integration
