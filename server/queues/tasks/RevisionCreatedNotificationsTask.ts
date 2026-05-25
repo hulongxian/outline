@@ -1,7 +1,11 @@
 import { subHours } from "date-fns";
 import { differenceBy } from "es-toolkit/compat";
 import { Op } from "sequelize";
-import { MentionType, NotificationEventType } from "@shared/types";
+import {
+  MentionType,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import {
   createSubscriptionsForDocument,
   subscribeUsersToDocument,
@@ -73,7 +77,8 @@ export default class RevisionCreatedNotificationsTask extends BaseTask<RevisionE
 
       if (
         recipient.subscribedToEventType(
-          NotificationEventType.MentionedInDocument
+          NotificationEventType.MentionedInDocument,
+          NotificationChannelType.App
         )
       ) {
         await Notification.create({
@@ -134,7 +139,8 @@ export default class RevisionCreatedNotificationsTask extends BaseTask<RevisionE
           recipient &&
           recipient.id !== group.actorId &&
           recipient.subscribedToEventType(
-            NotificationEventType.GroupMentionedInDocument
+            NotificationEventType.GroupMentionedInDocument,
+            NotificationChannelType.App
           ) &&
           (await canUserAccessDocument(recipient, document.id))
         ) {

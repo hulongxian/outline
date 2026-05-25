@@ -1,5 +1,8 @@
 import type { DocumentPermission } from "@shared/types";
-import { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import Logger from "@server/logging/Logger";
 import { Notification, User } from "@server/models";
 import type { DocumentUserEvent } from "@server/types";
@@ -28,7 +31,10 @@ export default class DocumentAddUserNotificationsTask extends BaseTask<DocumentU
     if (
       !recipient ||
       recipient.isSuspended ||
-      !recipient.subscribedToEventType(NotificationEventType.AddUserToDocument)
+      !recipient.subscribedToEventType(
+        NotificationEventType.AddUserToDocument,
+        NotificationChannelType.App
+      )
     ) {
       return;
     }

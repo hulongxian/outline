@@ -1,6 +1,10 @@
 import invariant from "invariant";
 import { Op } from "sequelize";
-import { MentionType, NotificationEventType } from "@shared/types";
+import {
+  MentionType,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { Comment, Document, Group, Notification, User } from "@server/models";
 import { ProsemirrorHelper } from "@server/models/helpers/ProsemirrorHelper";
 import type { CommentEvent, CommentUpdateEvent } from "@server/types";
@@ -55,7 +59,8 @@ export default class CommentUpdatedNotificationsTask extends BaseTask<CommentEve
         recipient &&
         recipient.id !== mention.actorId &&
         recipient.subscribedToEventType(
-          NotificationEventType.MentionedInComment
+          NotificationEventType.MentionedInComment,
+          NotificationChannelType.App
         ) &&
         (await canUserAccessDocument(recipient, document.id))
       ) {
@@ -147,7 +152,10 @@ export default class CommentUpdatedNotificationsTask extends BaseTask<CommentEve
 
         if (
           user &&
-          user.subscribedToEventType(NotificationEventType.ResolveComment) &&
+          user.subscribedToEventType(
+            NotificationEventType.ResolveComment,
+            NotificationChannelType.App
+          ) &&
           (await canUserAccessDocument(user, document.id))
         ) {
           await Notification.create({

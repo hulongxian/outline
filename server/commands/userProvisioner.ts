@@ -1,6 +1,10 @@
 import type { InferCreationAttributes } from "sequelize";
 import { Op } from "sequelize";
-import type { UserRole } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+  type UserRole,
+} from "@shared/types";
 import InviteAcceptedEmail from "@server/emails/templates/InviteAcceptedEmail";
 import {
   DomainNotAllowedError,
@@ -182,7 +186,12 @@ export default async function userProvisioner(
 
     if (isInvite) {
       const inviter = await existingUser.$get("invitedBy");
-      if (inviter) {
+      if (
+        inviter?.subscribedToEventType(
+          NotificationEventType.InviteAccepted,
+          NotificationChannelType.Email
+        )
+      ) {
         await new InviteAcceptedEmail({
           to: inviter.email,
           language: inviter.language,

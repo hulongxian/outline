@@ -3,7 +3,11 @@ import { useCallback, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import styled from "styled-components";
-import { ExportContentType, NotificationEventType } from "@shared/types";
+import {
+  ExportContentType,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import type Document from "~/models/Document";
 import ConfirmationDialog from "~/components/ConfirmationDialog";
 import Flex from "~/components/Flex";
@@ -158,7 +162,8 @@ export const DocumentDownload = observer(({ document, onSubmit }: Props) => {
                   }}
                 />{" "}
                 {user.subscribedToEventType(
-                  NotificationEventType.ExportCompleted
+                  NotificationEventType.ExportCompleted,
+                  NotificationChannelType.Email
                 ) && t("You will receive an email when it's complete.")}
               </Text>
             </Flex>

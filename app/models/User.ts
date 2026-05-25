@@ -3,7 +3,7 @@ import { computed, action, observable } from "mobx";
 import { now } from "mobx-utils";
 import { UserPreferenceDefaults } from "@shared/constants";
 import {
-  NotificationEventDefaults,
+  NotificationChannelType,
   type NotificationEventType,
   TeamPreference,
   UserPreference,
@@ -11,6 +11,12 @@ import {
   UserRole,
 } from "@shared/types";
 import type { NotificationSettings } from "@shared/types";
+import {
+  isAnyNotificationChannelEnabled,
+  isNotificationChannelEnabled,
+  setAllNotificationChannelsEnabled,
+  setNotificationChannelEnabled,
+} from "@shared/utils/notificationSettings";
 import type { locales } from "@shared/utils/date";
 import { client } from "~/utils/ApiClient";
 import type Document from "./Document";
@@ -206,36 +212,63 @@ class User extends ParanoidModel implements Searchable {
    * Returns the current preference for the given notification event type taking
    * into account the default system value.
    *
-   * @param type The type of notification event
-   * @returns The current preference
+   * @param type The type of notification event.
+   * @param channel Optional delivery channel; when omitted any enabled channel returns true.
+   * @returns The current preference.
    */
-  public subscribedToEventType = (type: NotificationEventType) =>
-    this.notificationSettings[type] ?? NotificationEventDefaults[type] ?? false;
+  public subscribedToEventType = (
+    type: NotificationEventType,
+    channel?: NotificationChannelType
+  ) => {
+    if (channel) {
+      return isNotificationChannelEnabled(
+        this.notificationSettings,
+        type,
+        channel
+      );
+    }
+
+    return isAnyNotificationChannelEnabled(this.notificationSettings, type);
+  };
 
   /**
    * Sets a preference for the users notification settings on the model and
    * saves the change to the server.
    *
-   * @param type The type of notification event
-   * @param value Set the preference to true/false
+   * @param type The type of notification event.
+   * @param value Set the preference to true/false.
+   * @param channel Optional delivery channel; when omitted all channels are set.
    */
   @action
   setNotificationEventType = async (
     eventType: NotificationEventType,
-    value: boolean
+    value: boolean,
+    channel?: NotificationChannelType
   ) => {
-    this.notificationSettings = {
-      ...this.notificationSettings,
-      [eventType]: value,
-    };
+    if (channel) {
+      this.notificationSettings = setNotificationChannelEnabled(
+        this.notificationSettings,
+        eventType,
+        channel,
+        value
+      );
+    } else {
+      this.notificationSettings = setAllNotificationChannelsEnabled(
+        this.notificationSettings,
+        eventType,
+        value
+      );
+    }
 
     if (value) {
       await client.post(`/users.notificationsSubscribe`, {
         eventType,
+        channel,
       });
     } else {
       await client.post(`/users.notificationsUnsubscribe`, {
         eventType,
+        channel,
       });
     }
   };

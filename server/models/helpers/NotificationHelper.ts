@@ -1,6 +1,7 @@
 import { uniq, uniqBy } from "es-toolkit/compat";
 import { Op } from "sequelize";
 import {
+  NotificationChannelType,
   NotificationEventType,
   MentionType,
   SubscriptionType,
@@ -35,7 +36,7 @@ export default class NotificationHelper {
     });
 
     recipients = recipients.filter((recipient) =>
-      recipient.subscribedToEventType(eventType)
+      recipient.subscribedToEventType(eventType, NotificationChannelType.App)
     );
 
     return recipients;
@@ -95,7 +96,10 @@ export default class NotificationHelper {
       });
 
       recipients = recipients.filter((recipient) =>
-        recipient.subscribedToEventType(NotificationEventType.CreateComment)
+        recipient.subscribedToEventType(
+          NotificationEventType.CreateComment,
+          NotificationChannelType.App
+        )
       );
     } else {
       recipients = await this.getDocumentNotificationRecipients({
@@ -215,7 +219,10 @@ export default class NotificationHelper {
     for (const recipient of recipients) {
       if (
         recipient.isSuspended ||
-        !recipient.subscribedToEventType(notificationType)
+        !recipient.subscribedToEventType(
+          notificationType,
+          NotificationChannelType.App
+        )
       ) {
         continue;
       }

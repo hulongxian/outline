@@ -1,4 +1,7 @@
-import { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { Minute } from "@shared/utils/time";
 import CollectionCreatedEmail from "@server/emails/templates/CollectionCreatedEmail";
 import CollectionSharedEmail from "@server/emails/templates/CollectionSharedEmail";
@@ -31,6 +34,15 @@ export default class EmailsProcessor extends BaseProcessor {
     const notificationId = notification.id;
 
     if (notification.user.isSuspended) {
+      return;
+    }
+
+    if (
+      !notification.user.subscribedToEventType(
+        notification.event,
+        NotificationChannelType.Email
+      )
+    ) {
       return;
     }
 

@@ -40,10 +40,16 @@ import type {
 } from "@shared/types";
 import {
   CollectionPermission,
-  NotificationEventDefaults,
+  NotificationChannelType,
   UserRole,
   DocumentPermission,
 } from "@shared/types";
+import {
+  isAnyNotificationChannelEnabled,
+  isNotificationChannelEnabled,
+  setAllNotificationChannelsEnabled,
+  setNotificationChannelEnabled,
+} from "@shared/utils/notificationSettings";
 import { UserRoleHelper } from "@shared/utils/UserRoleHelper";
 import { stringToColor } from "@shared/utils/color";
 import type { locales } from "@shared/utils/date";
@@ -335,28 +341,54 @@ class User extends ParanoidModel<
   /**
    * Sets a preference for the users notification settings.
    *
-   * @param type The type of notification event
-   * @param value Set the preference to true/false
+   * @param type The type of notification event.
+   * @param value Set the preference to true/false.
+   * @param channel Optional delivery channel; when omitted all channels are set.
    */
   public setNotificationEventType = (
     type: NotificationEventType,
-    value = true
+    value = true,
+    channel?: NotificationChannelType
   ) => {
-    this.notificationSettings = {
-      ...this.notificationSettings,
-      [type]: value,
-    };
+    if (channel) {
+      this.notificationSettings = setNotificationChannelEnabled(
+        this.notificationSettings,
+        type,
+        channel,
+        value
+      );
+      return;
+    }
+
+    this.notificationSettings = setAllNotificationChannelsEnabled(
+      this.notificationSettings,
+      type,
+      value
+    );
   };
 
   /**
    * Returns the current preference for the given notification event type taking
    * into account the default system value.
    *
-   * @param type The type of notification event
-   * @returns The current preference
+   * @param type The type of notification event.
+   * @param channel Optional delivery channel; when omitted any enabled channel returns true.
+   * @returns The current preference.
    */
-  public subscribedToEventType = (type: NotificationEventType) =>
-    this.notificationSettings[type] ?? NotificationEventDefaults[type] ?? false;
+  public subscribedToEventType = (
+    type: NotificationEventType,
+    channel?: NotificationChannelType
+  ) => {
+    if (channel) {
+      return isNotificationChannelEnabled(
+        this.notificationSettings,
+        type,
+        channel
+      );
+    }
+
+    return isAnyNotificationChannelEnabled(this.notificationSettings, type);
+  };
 
   /**
    * User flags are for storing information on a user record that is not visible

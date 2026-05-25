@@ -1,4 +1,7 @@
-import { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { Notification, User } from "@server/models";
 import type { CollectionUserEvent } from "@server/types";
 import { BaseTask, TaskPriority } from "./base/BaseTask";
@@ -12,7 +15,10 @@ export default class CollectionAddUserNotificationsTask extends BaseTask<Collect
 
     if (
       !recipient.isSuspended &&
-      recipient.subscribedToEventType(NotificationEventType.AddUserToCollection)
+      recipient.subscribedToEventType(
+        NotificationEventType.AddUserToCollection,
+        NotificationChannelType.App
+      )
     ) {
       await Notification.create({
         event: NotificationEventType.AddUserToCollection,

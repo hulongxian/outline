@@ -1,4 +1,7 @@
-import { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { Comment, Document, Notification, User } from "@server/models";
 import type { CommentReactionEvent } from "@server/types";
 import { canUserAccessDocument } from "@server/utils/permissions";
@@ -45,7 +48,10 @@ export default class ReactionCreatedNotificationsTask extends BaseTask<CommentRe
 
     // Check if the comment author has this notification type enabled
     if (
-      !recipient.subscribedToEventType(NotificationEventType.ReactionsCreate)
+      !recipient.subscribedToEventType(
+        NotificationEventType.ReactionsCreate,
+        NotificationChannelType.App
+      )
     ) {
       return;
     }

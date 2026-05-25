@@ -1,4 +1,8 @@
-import { MentionType, NotificationEventType } from "@shared/types";
+import {
+  MentionType,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import {
   createSubscriptionsForDocument,
   subscribeUsersToDocument,
@@ -49,7 +53,8 @@ export default class DocumentPublishedNotificationsTask extends BaseTask<Documen
 
       if (
         recipient.subscribedToEventType(
-          NotificationEventType.MentionedInDocument
+          NotificationEventType.MentionedInDocument,
+          NotificationChannelType.App
         )
       ) {
         await Notification.create({
@@ -99,7 +104,8 @@ export default class DocumentPublishedNotificationsTask extends BaseTask<Documen
           recipient &&
           recipient.id !== group.actorId &&
           recipient.subscribedToEventType(
-            NotificationEventType.GroupMentionedInDocument
+            NotificationEventType.GroupMentionedInDocument,
+            NotificationChannelType.App
           ) &&
           (await canUserAccessDocument(recipient, document.id))
         ) {

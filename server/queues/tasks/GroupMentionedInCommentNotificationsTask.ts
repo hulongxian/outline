@@ -1,5 +1,8 @@
 import { Op } from "sequelize";
-import { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { Group, GroupUser, Notification, User } from "@server/models";
 import type { CommentEvent } from "@server/types";
 import { canUserAccessDocument } from "@server/utils/permissions";
@@ -56,7 +59,8 @@ export default class GroupMentionedInCommentNotificationsTask extends BaseTask<G
             if (
               recipient &&
               recipient.subscribedToEventType(
-                NotificationEventType.GroupMentionedInComment
+                NotificationEventType.GroupMentionedInComment,
+                NotificationChannelType.App
               ) &&
               (await canUserAccessDocument(recipient, event.documentId))
             ) {

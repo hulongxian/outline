@@ -1,7 +1,11 @@
 import fs from "fs-extra";
 import { truncate } from "es-toolkit/compat";
 import type { NavigationNode } from "@shared/types";
-import { FileOperationState, NotificationEventType } from "@shared/types";
+import {
+  FileOperationState,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import { bytesToHumanReadable } from "@shared/utils/files";
 import ExportFailureEmail from "@server/emails/templates/ExportFailureEmail";
 import ExportSuccessEmail from "@server/emails/templates/ExportSuccessEmail";
@@ -80,7 +84,12 @@ export default abstract class ExportTask extends BaseTask<Props> {
         url,
       });
 
-      if (user.subscribedToEventType(NotificationEventType.ExportCompleted)) {
+      if (
+        user.subscribedToEventType(
+          NotificationEventType.ExportCompleted,
+          NotificationChannelType.Email
+        )
+      ) {
         await new ExportSuccessEmail({
           to: user.email,
           language: user.language,
@@ -95,7 +104,12 @@ export default abstract class ExportTask extends BaseTask<Props> {
         state: FileOperationState.Error,
         error,
       });
-      if (user.subscribedToEventType(NotificationEventType.ExportCompleted)) {
+      if (
+        user.subscribedToEventType(
+          NotificationEventType.ExportCompleted,
+          NotificationChannelType.Email
+        )
+      ) {
         await new ExportFailureEmail({
           to: user.email,
           language: user.language,

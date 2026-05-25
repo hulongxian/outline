@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { uniq } from "es-toolkit/compat";
 import {
+  NotificationChannelType,
   NotificationEventType,
   DocumentPermission,
   CollectionPermission,
@@ -65,7 +66,8 @@ export default class DocumentAccessRequestNotificationsTask extends BaseTask<Acc
       }
       if (
         !recipient.subscribedToEventType(
-          NotificationEventType.RequestDocumentAccess
+          NotificationEventType.RequestDocumentAccess,
+          NotificationChannelType.App
         )
       ) {
         Logger.debug("task", "Skipping recipient: not subscribed", {

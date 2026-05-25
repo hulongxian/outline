@@ -1,5 +1,6 @@
 import {
   MentionType,
+  NotificationChannelType,
   NotificationEventType,
   SubscriptionType,
 } from "@shared/types";
@@ -62,7 +63,8 @@ export default class CommentCreatedNotificationsTask extends BaseTask<CommentEve
         recipient &&
         recipient.id !== mention.actorId &&
         recipient.subscribedToEventType(
-          NotificationEventType.MentionedInComment
+          NotificationEventType.MentionedInComment,
+          NotificationChannelType.App
         ) &&
         (await canUserAccessDocument(recipient, document.id))
       ) {

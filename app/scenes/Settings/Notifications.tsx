@@ -19,22 +19,40 @@ import {
 import * as React from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { toast } from "sonner";
-import { NotificationEventType } from "@shared/types";
+import styled from "styled-components";
+import {
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
+import { notificationEventSupportsEmail } from "@shared/utils/notificationSettings";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import Heading from "~/components/Heading";
 import Notice from "~/components/Notice";
 import Scene from "~/components/Scene";
 import Switch from "~/components/Switch";
 import Text from "~/components/Text";
+import env from "~/env";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import { client } from "~/utils/ApiClient";
 import isCloudHosted from "~/utils/isCloudHosted";
 import SettingRow from "./components/SettingRow";
 
+type NotificationOption = {
+  event: NotificationEventType;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  visible?: boolean;
+  appOnly?: boolean;
+  emailOnly?: boolean;
+};
+
 function Notifications() {
   const user = useCurrentUser();
   const { t } = useTranslation();
+  const emailEnabled = env.EMAIL_ENABLED;
 
-  const options = [
+  const options: NotificationOption[] = [
     {
       event: NotificationEventType.PublishDocument,
       icon: <PublishIcon />,
@@ -90,6 +108,7 @@ function Notifications() {
       description: t(
         "Receive a notification when someone reacts to your comment"
       ),
+      appOnly: true,
     },
     {
       event: NotificationEventType.CreateCollection,
@@ -106,6 +125,7 @@ function Notifications() {
       description: t(
         "Receive a notification when someone you invited creates an account"
       ),
+      emailOnly: true,
     },
     {
       event: NotificationEventType.AddUserToDocument,
@@ -145,6 +165,7 @@ function Notifications() {
       event: NotificationEventType.Onboarding,
       title: t("Getting started"),
       description: t("Tips on getting started with features and functionality"),
+      emailOnly: true,
     },
     {
       visible: isCloudHosted,
@@ -152,6 +173,7 @@ function Notifications() {
       event: NotificationEventType.Features,
       title: t("New features"),
       description: t("Receive an email when new features of note are added"),
+      emailOnly: true,
     },
   ];
 
@@ -162,10 +184,11 @@ function Notifications() {
   }, 500);
 
   const handleChange = React.useCallback(
-    (eventType: NotificationEventType) => async (checked: boolean) => {
-      await user.setNotificationEventType(eventType, checked);
-      showSuccessMessage();
-    },
+    (eventType: NotificationEventType, channel: NotificationChannelType) =>
+      async (checked: boolean) => {
+        await user.setNotificationEventType(eventType, checked, channel);
+        showSuccessMessage();
+      },
     [user, showSuccessMessage]
   );
 
@@ -194,6 +217,68 @@ function Notifications() {
 
   const showSuccessNotice = window.location.search === "?success";
 
+  const renderChannelSwitches = (option: NotificationOption) => {
+    const supportsEmail =
+      emailEnabled &&
+      !option.appOnly &&
+      notificationEventSupportsEmail(option.event);
+    const showApp = !option.emailOnly;
+    const showEmail = supportsEmail || (option.emailOnly && emailEnabled);
+
+    if (!emailEnabled) {
+      return (
+        <Switch
+          id={option.event}
+          name={option.event}
+          checked={user.subscribedToEventType(
+            option.event,
+            NotificationChannelType.App
+          )}
+          onChange={handleChange(option.event, NotificationChannelType.App)}
+        />
+      );
+    }
+
+    return (
+      <ChannelGrid>
+        <ChannelCell>
+          {showApp ? (
+            <Switch
+              id={`${option.event}-app`}
+              name={`${option.event}-app`}
+              checked={user.subscribedToEventType(
+                option.event,
+                NotificationChannelType.App
+              )}
+              onChange={handleChange(
+                option.event,
+                NotificationChannelType.App
+              )}
+              aria-label={`${option.title} ${t("In-app")}`}
+            />
+          ) : null}
+        </ChannelCell>
+        <ChannelCell>
+          {showEmail ? (
+            <Switch
+              id={`${option.event}-email`}
+              name={`${option.event}-email`}
+              checked={user.subscribedToEventType(
+                option.event,
+                NotificationChannelType.Email
+              )}
+              onChange={handleChange(
+                option.event,
+                NotificationChannelType.Email
+              )}
+              aria-label={`${option.title} ${t("Email")}`}
+            />
+          ) : null}
+        </ChannelCell>
+      </ChannelGrid>
+    );
+  };
+
   return (
     <Scene title={t("Notifications")} icon={<EmailIcon />}>
       <Heading>{t("Notifications")}</Heading>
@@ -206,8 +291,38 @@ function Notifications() {
         </Notice>
       )}
       <Text as="p" type="secondary">
-        <Trans>Manage when and where you receive email notifications.</Trans>
+        <Trans>
+          Choose which events send in-app notifications and email when SMTP is
+          configured.
+        </Trans>
       </Text>
+
+      {!emailEnabled && (
+        <Notice>
+          <Trans>
+            Email delivery is disabled on this server. Configure SMTP to enable
+            email notifications.
+          </Trans>
+        </Notice>
+      )}
+
+      {emailEnabled && (
+        <SettingRow
+          name="channelHeaders"
+          label={
+            <VisuallyHidden.Root>
+              {t("Notification channels")}
+            </VisuallyHidden.Root>
+          }
+          compact
+          border={false}
+        >
+          <ChannelGrid>
+            <ChannelHeader>{t("In-app")}</ChannelHeader>
+            <ChannelHeader>{t("Email")}</ChannelHeader>
+          </ChannelGrid>
+        </SettingRow>
+      )}
 
       <SettingRow
         name="allNotifications"
@@ -215,41 +330,74 @@ function Notifications() {
         compact
         border={false}
       >
-        <Switch
-          id="allNotifications"
-          checked={allEnabled}
-          onChange={handleToggleAll}
-        />
+        {emailEnabled ? (
+          <ChannelGrid>
+            <AllNotificationsCell>
+              <Switch
+                id="allNotifications"
+                checked={allEnabled}
+                onChange={handleToggleAll}
+                aria-label={t("All notifications")}
+              />
+            </AllNotificationsCell>
+          </ChannelGrid>
+        ) : (
+          <Switch
+            id="allNotifications"
+            checked={allEnabled}
+            onChange={handleToggleAll}
+          />
+        )}
       </SettingRow>
 
-      {options.map((option) => {
-        const setting = user.subscribedToEventType(option.event);
-
-        return (
-          <SettingRow
-            key={option.event}
-            visible={option.visible}
-            label={option.title}
-            name={option.event}
-            description={
-              <Text size="small" type="secondary">
-                {option.description}
-              </Text>
-            }
-            compact
-          >
-            <Switch
-              key={option.event}
-              id={option.event}
-              name={option.event}
-              checked={!!setting}
-              onChange={handleChange(option.event)}
-            />
-          </SettingRow>
-        );
-      })}
+      {options.map((option) => (
+        <SettingRow
+          key={option.event}
+          visible={option.visible}
+          label={option.title}
+          name={option.event}
+          description={
+            <Text size="small" type="secondary">
+              {option.description}
+            </Text>
+          }
+          compact
+        >
+          {renderChannelSwitches(option)}
+        </SettingRow>
+      ))}
     </Scene>
   );
 }
+
+const CHANNEL_COLUMN_WIDTH = 52;
+
+const ChannelGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, ${CHANNEL_COLUMN_WIDTH}px);
+  column-gap: 24px;
+  justify-items: center;
+  width: fit-content;
+  margin-left: auto;
+`;
+
+const ChannelCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${CHANNEL_COLUMN_WIDTH}px;
+  min-height: 24px;
+`;
+
+const ChannelHeader = styled(Text).attrs({
+  size: "small",
+  type: "secondary",
+})`
+  text-align: center;
+`;
+
+const AllNotificationsCell = styled(ChannelCell)`
+  grid-column: 1 / -1;
+`;
 
 export default observer(Notifications);

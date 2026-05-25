@@ -2,7 +2,10 @@ import Router from "koa-router";
 import { isEmpty, isNil, isNull, isUndefined } from "es-toolkit/compat";
 import type { WhereOptions } from "sequelize";
 import { Op } from "sequelize";
-import type { NotificationEventType } from "@shared/types";
+import {
+  NotificationChannelType,
+  type NotificationEventType,
+} from "@shared/types";
 import { createContext } from "@server/context";
 import env from "@server/env";
 import { AuthenticationError } from "@server/errors";
@@ -50,7 +53,11 @@ const handleUnsubscribe = async (
     transaction,
   });
 
-  user.setNotificationEventType(eventType, false);
+  user.setNotificationEventType(
+    eventType,
+    false,
+    NotificationChannelType.Email
+  );
   await user.save({ transaction });
   ctx.redirect(`${user.team.url}/settings/notifications?success`);
 };

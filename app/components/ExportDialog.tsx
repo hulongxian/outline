@@ -3,7 +3,11 @@ import * as React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import styled from "styled-components";
-import { FileOperationFormat, NotificationEventType } from "@shared/types";
+import {
+  FileOperationFormat,
+  NotificationChannelType,
+  NotificationEventType,
+} from "@shared/types";
 import type Collection from "~/models/Collection";
 import ConfirmationDialog from "~/components/ConfirmationDialog";
 import Flex from "~/components/Flex";
@@ -128,8 +132,10 @@ function ExportDialog({ collection, onSubmit }: Props) {
               em: <strong />,
             }}
           />{" "}
-          {user.subscribedToEventType(NotificationEventType.ExportCompleted) &&
-            t("You will receive an email when it's complete.")}
+          {user.subscribedToEventType(
+            NotificationEventType.ExportCompleted,
+            NotificationChannelType.Email
+          ) && t("You will receive an email when it's complete.")}
         </Text>
       )}
       <Flex gap={12} column>
