@@ -11,7 +11,7 @@ PluginManager.add([
       group: "Integrations",
       icon: Icon,
       description:
-        "Connect your Jira instance to enable rich issue previews inside documents.",
+        "Connect your JIRA instances to enable rich issue previews inside documents.",
       component: createLazyComponent(() => import("./Settings")),
     },
   },

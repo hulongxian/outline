@@ -195,17 +195,17 @@ function JiraSettings() {
     <form onSubmit={formHandleSubmit(handleSubmit)}>
       <Notice>
         <Trans>
-          If your Jira hostname resolves to a private IP, add it to the
+          If your JIRA hostname resolves to a private IP, add it to the
           ALLOWED_PRIVATE_IP_ADDRESSES environment variable on the Outline
           server.
         </Trans>
       </Notice>
 
       <SettingRow
-        label={t("Jira URL")}
+        label={t("JIRA URL")}
         name="url"
         description={t(
-          "The URL of your Jira instance, e.g. https://jira.example.com"
+          "The URL of your JIRA instance, e.g. https://jira.example.com"
         )}
       >
         <Input
@@ -215,7 +215,7 @@ function JiraSettings() {
       </SettingRow>
 
       <SettingRow
-        label={t("Jira Cloud")}
+        label={t("JIRA Cloud")}
         name="isCloud"
         description={t("Enable only for Atlassian Cloud (*.atlassian.net).")}
       >
@@ -253,7 +253,7 @@ function JiraSettings() {
             <SettingRow
               label={t("Username")}
               name="username"
-              description={t("Jira account username")}
+              description={t("JIRA account username")}
             >
               <Input
                 placeholder={t("Username")}
@@ -276,7 +276,7 @@ function JiraSettings() {
             ? t("Leave blank to keep the existing credential.")
             : isCloud || authType === "pat"
               ? t("Personal access token or API token.")
-              : t("Jira account password.")
+              : t("JIRA account password.")
         }
       >
         <Input
@@ -290,7 +290,7 @@ function JiraSettings() {
         label={t("Client certificate (P12)")}
         name="useClientCertificate"
         description={t(
-          "Enable when your Jira gateway requires a P12/PFX client certificate for HTTPS."
+          "Enable when your JIRA gateway requires a P12/PFX client certificate for HTTPS."
         )}
       >
         <input type="checkbox" {...register("useClientCertificate")} />
@@ -369,13 +369,13 @@ function JiraSettings() {
   );
 
   return (
-    <IntegrationScene title="Jira" icon={<JiraIcon />}>
-      <Heading>Jira</Heading>
+    <IntegrationScene title="JIRA" icon={<JiraIcon />}>
+      <Heading>JIRA</Heading>
 
       <Text as="p" type="secondary">
         <Trans>
-          Enable previews of Jira issues in documents by connecting your Jira
-          instances to {{ appName }}. Each Jira URL is configured separately
+          Enable previews of JIRA issues in documents by connecting your JIRA
+          instances to {{ appName }}. Each JIRA URL is configured separately
           with its own credentials and optional P12 client certificate.
         </Trans>
       </Text>
@@ -432,7 +432,7 @@ function JiraSettings() {
                       <ConnectedButton
                         onClick={intg.delete}
                         confirmationMessage={t(
-                          "Disconnecting will prevent previewing Jira links from this URL in documents. Are you sure?"
+                          "Disconnecting will prevent previewing JIRA links from this URL in documents. Are you sure?"
                         )}
                       />
                     </Flex>
@@ -448,7 +448,7 @@ function JiraSettings() {
         <>
           {integrations.jira.length > 0 ? (
             <Heading as="h2">
-              {isCreating ? t("Add Jira instance") : t("Edit Jira instance")}
+              {isCreating ? t("Add JIRA instance") : t("Edit JIRA instance")}
             </Heading>
           ) : null}
           {renderForm()}

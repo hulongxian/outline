@@ -1,7 +1,7 @@
 {
   "id": "jira",
-  "name": "Jira",
+  "name": "JIRA",
   "priority": 16,
-  "description": "Adds a Jira integration for link unfurling and converting links to mentions.",
+  "description": "Adds a JIRA integration for link unfurling and converting links to mentions.",
   "after": "linear"
 }
