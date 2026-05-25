@@ -222,6 +222,27 @@ export function sanitizeUrl(url: string | null | undefined) {
 }
 
 /**
+ * Normalizes a URL for use as an unfurl cache key.
+ *
+ * @param url - Absolute or relative URL.
+ * @param baseUrl - Base URL used to resolve relative paths.
+ * @return Canonical URL string.
+ */
+export function normalizeUnfurlUrl(url: string, baseUrl = env.URL): string {
+  try {
+    const parsed = new URL(url, baseUrl);
+    const pathname =
+      parsed.pathname.length > 1 && parsed.pathname.endsWith("/")
+        ? parsed.pathname.slice(0, -1)
+        : parsed.pathname;
+
+    return `${parsed.origin}${pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url;
+  }
+}
+
+/**
  * For use in the editor on image-like elements, this function will ensure
  * that a src is potentially valid. In addition to the protocols allowed by
  * `sanitizeUrl`, base64-encoded image data URIs are permitted (excluding

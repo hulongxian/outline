@@ -14,6 +14,7 @@ import { Backticks } from "../../components/Backticks";
 import Flex from "../../components/Flex";
 import Icon from "../../components/Icon";
 import { IssueStatusIcon } from "../../components/IssueStatusIcon";
+import { JiraPriority } from "../../components/JiraPriority";
 import { PullRequestIcon } from "../../components/PullRequestIcon";
 import Spinner from "../../components/Spinner";
 import Text from "../../components/Text";
@@ -28,7 +29,12 @@ import {
 } from "../../types";
 import { cn } from "../styles/utils";
 import type { ComponentProps } from "../types";
-import { toDisplayUrl, cdnPath, sanitizeUrl } from "../../utils/urls";
+import {
+  toDisplayUrl,
+  cdnPath,
+  normalizeUnfurlUrl,
+  sanitizeUrl,
+} from "../../utils/urls";
 import { getIssueTrackerServiceFromUrl } from "../../utils/issueTracker";
 import Squircle from "../../components/Squircle";
 
@@ -288,11 +294,18 @@ export const MentionIssue = observer((props: IssuePrProps) => {
     ...attrs
   } = getAttributesFromNode(node);
 
-  const unfurl = unfurls.get(attrs.href)?.data ?? unfurlAttr;
+  const issueUrl =
+    typeof attrs.href === "string" ? normalizeUnfurlUrl(attrs.href) : "";
+  const unfurl = unfurls.get(issueUrl)?.data ?? unfurlAttr;
 
   React.useEffect(() => {
     const fetchIssue = async () => {
-      const unfurlModel = await unfurls.fetchUnfurl({ url: attrs.href });
+      if (!issueUrl) {
+        setLoaded(true);
+        return;
+      }
+
+      const unfurlModel = await unfurls.fetchUnfurl({ url: issueUrl });
 
       if (!isMounted()) {
         return;
@@ -302,6 +315,7 @@ export const MentionIssue = observer((props: IssuePrProps) => {
         onChangeUnfurl({
           ...unfurlModel.data,
           description: null,
+          comments: undefined,
         } satisfies UnfurlResponse[UnfurlResourceType.Issue]);
       }
 
@@ -309,7 +323,7 @@ export const MentionIssue = observer((props: IssuePrProps) => {
     };
 
     void fetchIssue();
-  }, [unfurls, attrs.href, isMounted, onChangeUnfurl]);
+  }, [unfurls, issueUrl, isMounted, onChangeUnfurl]);
 
   if (!unfurl) {
     return !loaded ? (
@@ -348,6 +362,12 @@ export const MentionIssue = observer((props: IssuePrProps) => {
           <JiraStatusBadge $color={issue.state.color}>
             {issue.state.name}
           </JiraStatusBadge>
+          {issue.priority ? (
+            <JiraPriority
+              name={issue.priority.name}
+              iconUrl={issue.priority.iconUrl}
+            />
+          ) : null}
           {issue.assignee ? (
             <AssigneeWrap>
               {issue.assignee.avatarUrl ? (

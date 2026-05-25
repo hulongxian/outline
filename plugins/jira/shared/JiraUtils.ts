@@ -152,7 +152,32 @@ export class JiraUtils {
     isCloud: boolean
   ): string {
     const apiVersion = isCloud ? "3" : "2";
-    return `${normalizeJiraUrl(baseUrl)}/rest/api/${apiVersion}/issue/${issueKey}?fields=summary,status,assignee,issuetype,creator,labels,description,created`;
+    return `${normalizeJiraUrl(baseUrl)}/rest/api/${apiVersion}/issue/${issueKey}?fields=summary,status,assignee,issuetype,creator,labels,description,created,priority,comment`;
+  }
+
+  /**
+   * Builds the REST API path for fetching issue comments.
+   *
+   * @param baseUrl - Jira instance base URL.
+   * @param issueKey - Jira issue key.
+   * @param isCloud - Whether the instance is Jira Cloud.
+   * @param maxResults - Maximum comments to return from the API.
+   * @return Full REST API URL for issue comments.
+   */
+  public static issueCommentsApiUrl(
+    baseUrl: string,
+    issueKey: string,
+    isCloud: boolean,
+    maxResults = 20
+  ): string {
+    const apiVersion = isCloud ? "3" : "2";
+    const base = `${normalizeJiraUrl(baseUrl)}/rest/api/${apiVersion}/issue/${issueKey}/comment`;
+
+    if (isCloud) {
+      return `${base}?maxResults=${maxResults}&orderBy=-created`;
+    }
+
+    return `${base}?maxResults=${maxResults}`;
   }
 
   /**

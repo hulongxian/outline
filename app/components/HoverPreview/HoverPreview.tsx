@@ -31,6 +31,10 @@ type Props = {
   unfurlId: string | null;
   /** Whether the preview data is being loaded. */
   dataLoading: boolean;
+  /** Whether the pointer has left the hover target and a close should be scheduled. */
+  closeRequested?: boolean;
+  /** Called when the pointer enters the preview card to cancel a scheduled close. */
+  onCancelClose?: () => void;
   /** A callback on close of the hover preview. */
   onClose: () => void;
 };
@@ -41,7 +45,14 @@ enum Direction {
 }
 
 const HoverPreviewDesktop = observer(
-  ({ element, unfurlId, dataLoading, onClose }: Props) => {
+  ({
+    element,
+    unfurlId,
+    dataLoading,
+    closeRequested = false,
+    onCancelClose,
+    onClose,
+  }: Props) => {
     const { unfurls } = useStores();
     const [isVisible, setVisible] = React.useState(false);
     const timerClose = React.useRef<ReturnType<typeof setTimeout>>();
@@ -70,19 +81,48 @@ const HoverPreviewDesktop = observer(
       timerClose.current = setTimeout(closePreview, DELAY_CLOSE);
     }, [closePreview]);
 
-    // Open and close the preview when the element changes.
+    // Open the preview when data is ready.
     React.useEffect(() => {
       if (element && data && !dataLoading) {
         setVisible(true);
-      } else {
-        startCloseTimer();
       }
-    }, [startCloseTimer, element, data, dataLoading]);
+    }, [element, data, dataLoading]);
+
+    // Schedule close when the pointer leaves the hover target (not the card).
+    React.useEffect(() => {
+      if (closeRequested) {
+        startCloseTimer();
+        return;
+      }
+
+      stopCloseTimer();
+    }, [closeRequested, startCloseTimer, stopCloseTimer]);
 
     // Close the preview on Escape, scroll, or click outside.
     useOnClickOutside(cardRef, closePreview);
     useKeyDown("Escape", closePreview);
-    useEventListener("scroll", closePreview, window, { capture: true });
+    useEventListener(
+      "scroll",
+      (event) => {
+        const target = event.target;
+
+        if (
+          target instanceof Node &&
+          cardRef.current?.contains(target)
+        ) {
+          return;
+        }
+
+        closePreview();
+      },
+      window,
+      { capture: true }
+    );
+
+    const handleCardMouseEnter = React.useCallback(() => {
+      stopCloseTimer();
+      onCancelClose?.();
+    }, [stopCloseTimer, onCancelClose]);
 
     // Ensure that the preview stays open while the user is hovering over the card.
     React.useEffect(() => {
@@ -90,20 +130,20 @@ const HoverPreviewDesktop = observer(
 
       if (isVisible) {
         if (card) {
-          card.addEventListener("mouseenter", stopCloseTimer);
+          card.addEventListener("mouseenter", handleCardMouseEnter);
           card.addEventListener("mouseleave", startCloseTimer);
         }
       }
 
       return () => {
         if (card) {
-          card.removeEventListener("mouseenter", stopCloseTimer);
+          card.removeEventListener("mouseenter", handleCardMouseEnter);
           card.removeEventListener("mouseleave", startCloseTimer);
         }
 
         stopCloseTimer();
       };
-    }, [element, startCloseTimer, isVisible, stopCloseTimer]);
+    }, [element, startCloseTimer, isVisible, stopCloseTimer, handleCardMouseEnter]);
 
     if (dataLoading) {
       return <LoadingIndicator />;
@@ -178,9 +218,13 @@ const HoverPreviewDesktop = observer(
                   title={data.title}
                   description={data.description}
                   author={data.author}
+                  assignee={data.assignee}
                   labels={data.labels}
                   state={data.state}
                   createdAt={data.createdAt}
+                  issueTypeIconUrl={data.issueTypeIconUrl}
+                  priority={data.priority}
+                  comments={data.comments}
                 />
               ) : data.type === UnfurlResourceType.PR ? (
                 <HoverPreviewPullRequest
@@ -227,7 +271,15 @@ const HoverPreviewDesktop = observer(
   }
 );
 
-function HoverPreview({ element, unfurlId, dataLoading, ...rest }: Props) {
+function HoverPreview({
+  element,
+  unfurlId,
+  dataLoading,
+  closeRequested,
+  onCancelClose,
+  onClose,
+  ...rest
+}: Props) {
   const isMobile = useMobile();
   if (isMobile) {
     return null;
@@ -239,6 +291,9 @@ function HoverPreview({ element, unfurlId, dataLoading, ...rest }: Props) {
       element={element}
       unfurlId={unfurlId}
       dataLoading={dataLoading}
+      closeRequested={closeRequested}
+      onCancelClose={onCancelClose}
+      onClose={onClose}
     />
   );
 }

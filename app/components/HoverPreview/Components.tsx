@@ -6,6 +6,9 @@ import Text from "~/components/Text";
 
 export const CARD_MARGIN = 10;
 
+/** Default width of hover preview cards (375px base + 120px for Jira details). */
+export const HOVER_PREVIEW_WIDTH = 495;
+
 const NUMBER_OF_LINES = 10;
 
 const sharedVars = css`
@@ -25,7 +28,7 @@ export const Preview = styled(Link)`
     0 0 1px 1px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   position: absolute;
-  width: 375px;
+  width: ${HOVER_PREVIEW_WIDTH}px;
 `;
 
 export const Title = styled(Text).attrs({ as: "h2", size: "large" })`
@@ -81,9 +84,9 @@ export const Label = styled(Text).attrs({ size: "xsmall", weight: "bold" })<{
   }
 `;
 
-export const CardContent = styled.div`
-  overflow: hidden;
-  user-select: none;
+export const CardContent = styled.div<{ $scrollable?: boolean }>`
+  overflow: ${(props) => (props.$scrollable ? "visible" : "hidden")};
+  user-select: ${(props) => (props.$scrollable ? "auto" : "none")};
 `;
 
 // &:after — gradient mask for overflow text

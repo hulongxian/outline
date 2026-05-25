@@ -10,6 +10,7 @@ import type IntegrationAuthentication from "@server/models/IntegrationAuthentica
 import type User from "@server/models/User";
 import type { UnfurlIssueOrPR, UnfurlSignature } from "@server/types";
 import { validateUrlNotPrivate } from "@server/utils/url";
+import { jiraBodyToPlainText } from "../shared/jiraAdf";
 import { JiraUtils } from "../shared/JiraUtils";
 import {
   credentialsFromIntegration,
@@ -36,6 +37,21 @@ const JiraLabelSchema = z.union([
     })
     .passthrough(),
 ]);
+
+const JiraCommentSchema = z
+  .object({
+    id: z.union([z.string(), z.number()]).transform(String),
+    author: JiraUserSchema,
+    body: z.unknown(),
+    created: z.string().optional(),
+    updated: z.string().optional(),
+  })
+  .passthrough();
+
+const JiraCommentsResponseSchema = z.object({
+  comments: z.array(JiraCommentSchema),
+  total: z.number().optional(),
+});
 
 const JiraIssueResponseSchema = z.object({
   key: z.string(),
@@ -65,6 +81,22 @@ const JiraIssueResponseSchema = z.object({
         .passthrough()
         .optional(),
       labels: z.array(JiraLabelSchema).optional(),
+      priority: z
+        .object({
+          name: z.string(),
+          iconUrl: z.string().optional(),
+        })
+        .passthrough()
+        .optional(),
+      comment: z
+        .object({
+          comments: z.array(JiraCommentSchema),
+          total: z.number().optional(),
+          startAt: z.number().optional(),
+          maxResults: z.number().optional(),
+        })
+        .passthrough()
+        .optional(),
     })
     .passthrough(),
 });
@@ -200,36 +232,45 @@ export class Jira {
     const isCloud = credentials.isCloud;
     const apiUrl = JiraUtils.issueApiUrl(baseUrl, issueKey, isCloud);
 
-    let res = await jiraFetch(apiUrl, credentials);
+    const commentsApiUrl = JiraUtils.issueCommentsApiUrl(
+      baseUrl,
+      issueKey,
+      isCloud
+    );
+
+    let issueRes = await jiraFetch(apiUrl, credentials);
+    let commentsRes = await jiraFetch(commentsApiUrl, credentials);
 
     if (
-      (res.status === 401 || res.status === 403) &&
+      (issueRes.status === 401 || issueRes.status === 403) &&
       credentials.authType === "pat" &&
       credentials.username
     ) {
-      res = await jiraFetch(apiUrl, {
+      const basicCredentials = {
         ...credentials,
-        authType: "basic",
-      });
+        authType: "basic" as const,
+      };
+      issueRes = await jiraFetch(apiUrl, basicCredentials);
+      commentsRes = await jiraFetch(commentsApiUrl, basicCredentials);
     }
 
-    if (res.status === 404) {
+    if (issueRes.status === 404) {
       Logger.info("jira", "Issue not found", { issueKey, apiUrl });
       return { error: "Resource not found" };
     }
 
-    if (res.status !== 200) {
-      const errorBody = await res.text().catch(() => "");
+    if (issueRes.status !== 200) {
+      const errorBody = await issueRes.text().catch(() => "");
       Logger.warn("jira", "Issue fetch failed", {
         issueKey,
-        status: res.status,
+        status: issueRes.status,
         apiUrl,
         body: errorBody.slice(0, 500),
       });
-      return { error: `Jira API returned status ${res.status}` };
+      return { error: `Jira API returned status ${issueRes.status}` };
     }
 
-    const raw: unknown = await res.json();
+    const raw: unknown = await issueRes.json();
     const parsed = JiraIssueResponseSchema.safeParse(raw);
 
     if (!parsed.success) {
@@ -240,7 +281,170 @@ export class Jira {
       return { error: "Unexpected Jira API response format" };
     }
 
-    return Jira.transformIssue(parsed.data, browseUrl, baseUrl);
+    let comments = Jira.extractCommentsFromFields(
+      parsed.data,
+      baseUrl,
+      isCloud
+    );
+
+    if (comments.length === 0) {
+      comments = await Jira.parseCommentsResponse(
+        commentsRes,
+        baseUrl,
+        isCloud,
+        issueKey,
+        credentials
+      );
+    }
+
+    return Jira.transformIssue(parsed.data, browseUrl, baseUrl, comments);
+  }
+
+  private static mapComment(
+    comment: z.infer<typeof JiraCommentSchema>,
+    baseUrl: string
+  ):
+    | {
+        id: string;
+        author: { name: string; avatarUrl: string };
+        body: string;
+        createdAt: string;
+      }
+    | undefined {
+    const body = jiraBodyToPlainText(comment.body);
+
+    if (!body) {
+      return undefined;
+    }
+
+    return {
+      id: comment.id,
+      author: {
+        name: comment.author?.displayName ?? "Unknown",
+        avatarUrl:
+          JiraUtils.resolveAssetUrl(
+            baseUrl,
+            comment.author?.avatarUrls?.["48x48"]
+          ) ?? "",
+      },
+      body,
+      createdAt:
+        comment.created ?? comment.updated ?? new Date().toISOString(),
+    };
+  }
+
+  private static extractCommentsFromFields(
+    data: z.infer<typeof JiraIssueResponseSchema>,
+    baseUrl: string,
+    isCloud: boolean
+  ): Array<{
+    id: string;
+    author: { name: string; avatarUrl: string };
+    body: string;
+    createdAt: string;
+  }> {
+    const rawComments = data.fields.comment?.comments ?? [];
+    let comments = rawComments
+      .map((comment) => Jira.mapComment(comment, baseUrl))
+      .filter(
+        (
+          comment
+        ): comment is {
+          id: string;
+          author: { name: string; avatarUrl: string };
+          body: string;
+          createdAt: string;
+        } => comment !== undefined
+      );
+
+    if (!isCloud) {
+      comments = comments.slice(-2).reverse();
+    } else {
+      comments = comments.slice(0, 2);
+    }
+
+    return comments;
+  }
+
+  private static async parseCommentsResponse(
+    res: Response,
+    baseUrl: string,
+    isCloud: boolean,
+    issueKey: string,
+    credentials: JiraRequestCredentials
+  ): Promise<
+    Array<{
+      id: string;
+      author: { name: string; avatarUrl: string };
+      body: string;
+      createdAt: string;
+    }>
+  > {
+    if (res.status !== 200) {
+      if (res.status !== 404) {
+        Logger.warn("jira", "Comments fetch failed", {
+          issueKey,
+          status: res.status,
+        });
+      }
+      return [];
+    }
+
+    let raw: unknown = await res.json();
+    let parsed = JiraCommentsResponseSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      Logger.warn("jira", "Comments response validation failed", {
+        issueKey,
+        issues: parsed.error.flatten(),
+      });
+      return [];
+    }
+
+    if (
+      !isCloud &&
+      parsed.data.total &&
+      parsed.data.total > (parsed.data.comments?.length ?? 0)
+    ) {
+      const startAt = Math.max(0, parsed.data.total - 2);
+      const paginatedUrl = `${JiraUtils.issueCommentsApiUrl(
+        baseUrl,
+        issueKey,
+        isCloud,
+        2
+      )}&startAt=${startAt}`;
+      const paginatedRes = await jiraFetch(paginatedUrl, credentials);
+
+      if (paginatedRes.status === 200) {
+        raw = await paginatedRes.json();
+        parsed = JiraCommentsResponseSchema.safeParse(raw);
+      }
+    }
+
+    if (!parsed.success) {
+      return [];
+    }
+
+    let comments = parsed.data.comments
+      .map((comment) => Jira.mapComment(comment, baseUrl))
+      .filter(
+        (
+          comment
+        ): comment is {
+          id: string;
+          author: { name: string; avatarUrl: string };
+          body: string;
+          createdAt: string;
+        } => comment !== undefined
+      );
+
+    if (!isCloud) {
+      comments = comments.slice(-2).reverse();
+    } else {
+      comments = comments.slice(0, 2);
+    }
+
+    return comments;
   }
 
   /**
@@ -307,7 +511,13 @@ export class Jira {
   private static transformIssue(
     data: z.infer<typeof JiraIssueResponseSchema>,
     browseUrl: string,
-    baseUrl: string
+    baseUrl: string,
+    comments: Array<{
+      id: string;
+      author: { name: string; avatarUrl: string };
+      body: string;
+      createdAt: string;
+    }> = []
   ): UnfurlIssueOrPR {
     const { fields } = data;
     const color = JiraUtils.statusColorForIssue(
@@ -334,8 +544,7 @@ export class Jira {
       url: browseUrl,
       id: data.key,
       title: fields.summary,
-      description:
-        typeof fields.description === "string" ? fields.description : null,
+      description: jiraBodyToPlainText(fields.description),
       author: {
         name: creator?.displayName ?? "Unknown",
         avatarUrl: JiraUtils.resolveAssetUrl(
@@ -364,6 +573,16 @@ export class Jira {
         color,
       },
       createdAt: fields.created ?? new Date().toISOString(),
+      priority: fields.priority
+        ? {
+            name: fields.priority.name,
+            iconUrl: JiraUtils.resolveAssetUrl(
+              baseUrl,
+              fields.priority.iconUrl
+            ),
+          }
+        : undefined,
+      comments: comments.length > 0 ? comments : undefined,
     };
   }
 }

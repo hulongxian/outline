@@ -1,6 +1,7 @@
 import { subMinutes } from "date-fns";
 import { action } from "mobx";
 import type { UnfurlResourceType } from "@shared/types";
+import { normalizeUnfurlUrl } from "@shared/utils/urls";
 import Unfurl from "~/models/Unfurl";
 import { client } from "~/utils/ApiClient";
 import Logger from "~/utils/Logger";
@@ -22,8 +23,10 @@ class UnfurlsStore extends Store<Unfurl<any>> {
     url: string;
     documentId?: string;
   }): Promise<Unfurl<UnfurlType> | undefined> => {
+    const normalizedUrl = normalizeUnfurlUrl(url);
+
     try {
-      const protocol = new URL(url).protocol;
+      const protocol = new URL(normalizedUrl).protocol;
       if (
         protocol !== "http:" &&
         protocol !== "https:" &&
@@ -35,14 +38,14 @@ class UnfurlsStore extends Store<Unfurl<any>> {
       return;
     }
 
-    const unfurl = this.get(url);
+    const unfurl = this.get(normalizedUrl);
 
     if (unfurl) {
       this.refetch({ unfurl: unfurl as Unfurl<UnfurlType>, documentId });
       return unfurl;
     }
 
-    return this.unfurl<UnfurlType>({ url, documentId });
+    return this.unfurl<UnfurlType>({ url: normalizedUrl, documentId });
   };
 
   private refetch = <UnfurlType extends UnfurlResourceType>({

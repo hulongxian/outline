@@ -653,6 +653,18 @@ export type UnfurlResponse = {
     assignee?: { name: string; avatarUrl: string } | null;
     /** Jira issue type icon URL */
     issueTypeIconUrl?: string;
+    /** Jira issue priority */
+    priority?: {
+      name: string;
+      iconUrl?: string;
+    };
+    /** Latest comments for rich issue previews (e.g. Jira) */
+    comments?: Array<{
+      id: string;
+      author: { name: string; avatarUrl: string };
+      body: string;
+      createdAt: string;
+    }>;
   };
   [UnfurlResourceType.PR]: {
     /** The resource type */
