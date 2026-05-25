@@ -7,6 +7,7 @@ import type {
 } from "../../types";
 import { IntegrationService } from "../../types";
 import { GitHubIssueStatusIcon } from "./GitHubIssueStatusIcon";
+import { JiraIssueStatusIcon } from "./JiraIssueStatusIcon";
 import { LinearIssueStatusIcon } from "./LinearIssueStatusIcon";
 import { GitLabIssueStatusIcon } from "./GitLabIssueStatusIcon";
 
@@ -14,6 +15,7 @@ export type BaseIconProps = {
   state: UnfurlResponse[UnfurlResourceType.Issue]["state"];
   className?: string;
   size?: number;
+  issueTypeIconUrl?: string;
 };
 
 type Props = BaseIconProps & {
@@ -36,6 +38,8 @@ function getIcon(props: Props) {
       return <LinearIssueStatusIcon {...props} />;
     case IntegrationService.GitLab:
       return <GitLabIssueStatusIcon {...props} />;
+    case IntegrationService.Jira:
+      return <JiraIssueStatusIcon {...props} />;
   }
 }
 

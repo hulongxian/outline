@@ -120,7 +120,8 @@ export default async function fetch(
 ): Promise<Response> {
   Logger.silly("http", `Network request to ${url}`, init);
 
-  const { allowPrivateIPAddress, timeout, ...rest } = init || {};
+  const { allowPrivateIPAddress, timeout, agent: customAgent, ...rest } =
+    init || {};
 
   // Create AbortController for timeout if specified
   let abortController: AbortController | undefined;
@@ -167,7 +168,8 @@ export default async function fetch(
       ...rest,
       headers,
       signal,
-      agent: buildAgent(url, { signal, allowPrivateIPAddress }),
+      agent:
+        customAgent ?? buildAgent(url, { signal, allowPrivateIPAddress }),
     });
 
     if (!response.ok) {

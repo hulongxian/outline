@@ -1,5 +1,5 @@
 up:
-	docker compose up -d redis postgres
+	echo "hlx.123" | sudo -S docker-compose up -d redis postgres
 	yarn install-local-ssl
 	yarn install --immutable
 	yarn dev:watch

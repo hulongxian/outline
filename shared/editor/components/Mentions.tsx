@@ -28,7 +28,8 @@ import {
 } from "../../types";
 import { cn } from "../styles/utils";
 import type { ComponentProps } from "../types";
-import { toDisplayUrl, cdnPath } from "../../utils/urls";
+import { toDisplayUrl, cdnPath, sanitizeUrl } from "../../utils/urls";
+import { getIssueTrackerServiceFromUrl } from "../../utils/issueTracker";
 import Squircle from "../../components/Squircle";
 
 type Attrs = {
@@ -319,18 +320,48 @@ export const MentionIssue = observer((props: IssuePrProps) => {
   }
 
   const issue = unfurl as UnfurlResponse[UnfurlResourceType.Issue];
+  const service = getIssueTrackerServiceFromUrl(issue.url);
+  const isJira = service === IntegrationService.Jira;
 
-  let service = IntegrationService.GitLab;
-  try {
-    const parsedUrl = new URL(issue.url);
-    service =
-      parsedUrl.hostname === "github.com"
-        ? IntegrationService.GitHub
-        : parsedUrl.hostname === "linear.app"
-          ? IntegrationService.Linear
-          : IntegrationService.GitLab;
-  } catch {
-    // Invalid URL in unfurl data, default to GitLab
+  if (isJira) {
+    return (
+      <a
+        {...attrs}
+        className={cn(className, {
+          "ProseMirror-selectednode": isSelected,
+        })}
+        href={attrs.href as string}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+      >
+        <Flex align="center" gap={6}>
+          <IssueStatusIcon
+            size={14}
+            service={service}
+            state={issue.state}
+            issueTypeIconUrl={issue.issueTypeIconUrl}
+          />
+          <IssueKey>{issue.id}</IssueKey>
+          <Text>
+            <Backticks content={issue.title} />
+          </Text>
+          <JiraStatusBadge $color={issue.state.color}>
+            {issue.state.name}
+          </JiraStatusBadge>
+          {issue.assignee ? (
+            <AssigneeWrap>
+              {issue.assignee.avatarUrl ? (
+                <AssigneeAvatar
+                  src={sanitizeUrl(issue.assignee.avatarUrl)}
+                  alt=""
+                />
+              ) : null}
+              <Text type="secondary">{issue.assignee.name}</Text>
+            </AssigneeWrap>
+          ) : null}
+        </Flex>
+      </a>
+    );
   }
 
   return (
@@ -545,4 +576,50 @@ const ProjectAvatar = styled.img`
   width: 12px;
   height: 12px;
   border-radius: 2px;
+`;
+
+const IssueKey = styled.span`
+  color: ${(props) => props.theme.link};
+  font-weight: 500;
+  flex-shrink: 0;
+`;
+
+const StatusBadge = styled.span<{ $color: string }>`
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: ${(props) => props.theme.almostBlack};
+  background: ${(props) => props.$color}33;
+  border: 1px solid ${(props) => props.$color}66;
+`;
+
+const JiraStatusBadge = styled.span<{ $color: string }>`
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: ${(props) => props.$color};
+  background: ${(props) => props.$color}22;
+  border: 1px solid ${(props) => props.$color}88;
+`;
+
+const AssigneeWrap = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+`;
+
+const AssigneeAvatar = styled.img`
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
 `;

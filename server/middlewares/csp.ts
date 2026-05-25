@@ -61,6 +61,16 @@ export default function createCSPMiddleware(options?: CSPOptions) {
   if (!env.isProduction) {
     scriptSrc.push(env.URL.replace(`:${env.PORT}`, ":3001"));
     scriptSrc.push("localhost:3001");
+    scriptSrc.push("127.0.0.1:3001");
+
+    try {
+      const viteHostname = new URL(env.URL).hostname;
+      if (viteHostname !== "localhost" && viteHostname !== "127.0.0.1") {
+        scriptSrc.push(`${viteHostname}:3001`);
+      }
+    } catch {
+      // Invalid URL
+    }
   } else {
     scriptSrc.push(env.URL);
   }

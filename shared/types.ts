@@ -163,6 +163,7 @@ export enum IntegrationService {
   Umami = "umami",
   GitHub = "github",
   GitLab = "gitlab",
+  Jira = "jira",
   Linear = "linear",
   Figma = "figma",
   Notion = "notion",
@@ -183,12 +184,14 @@ export type IssueTrackerIntegrationService = Extract<
   IntegrationService,
   | IntegrationService.GitHub
   | IntegrationService.GitLab
+  | IntegrationService.Jira
   | IntegrationService.Linear
 >;
 
 export const IssueTrackerIntegrationService = {
   GitHub: IntegrationService.GitHub,
   GitLab: IntegrationService.GitLab,
+  Jira: IntegrationService.Jira,
   Linear: IntegrationService.Linear,
 } as const;
 
@@ -262,6 +265,16 @@ export type IntegrationSettings<T> = T extends IntegrationType.Embed
       };
       linear?: {
         workspace: { id: string; name: string; key: string; logoUrl?: string };
+      };
+      jira?: {
+        url: string;
+        isCloud?: boolean;
+        email?: string;
+        /** pat (Bearer) or basic (username + password) for Server/Data Center */
+        authType?: "pat" | "basic";
+        username?: string;
+        /** Whether a client P12 certificate is stored for mTLS */
+        hasClientCertificate?: boolean;
       };
       diagrams?: {
         url: string;
@@ -636,6 +649,10 @@ export type UnfurlResponse = {
     };
     /** Issue's creation time */
     createdAt: string;
+    /** Issue assignee, when available */
+    assignee?: { name: string; avatarUrl: string } | null;
+    /** Jira issue type icon URL */
+    issueTypeIconUrl?: string;
   };
   [UnfurlResourceType.PR]: {
     /** The resource type */

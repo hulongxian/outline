@@ -6,6 +6,7 @@ import { IssueStatusIcon } from "@shared/components/IssueStatusIcon";
 import { richExtensions } from "@shared/editor/nodes";
 import type { UnfurlResourceType, UnfurlResponse } from "@shared/types";
 import { IntegrationService } from "@shared/types";
+import { getIssueTrackerServiceFromUrl } from "@shared/utils/issueTracker";
 import { Avatar } from "~/components/Avatar";
 import Editor from "~/components/Editor";
 import Flex from "~/components/Flex";
@@ -24,17 +25,23 @@ import {
 type Props = Omit<UnfurlResponse[UnfurlResourceType.Issue], "type">;
 
 const HoverPreviewIssue = React.forwardRef(function HoverPreviewIssue_(
-  { url, id, title, description, author, labels, state, createdAt }: Props,
+  {
+    url,
+    id,
+    title,
+    description,
+    author,
+    assignee,
+    labels,
+    state,
+    createdAt,
+    issueTypeIconUrl,
+  }: Props,
   ref: React.Ref<HTMLDivElement>
 ) {
   const authorName = author.name;
-  const urlObj = new URL(url);
-  const service =
-    urlObj.hostname === "linear.app"
-      ? IntegrationService.Linear
-      : urlObj.hostname === "github.com"
-        ? IntegrationService.GitHub
-        : IntegrationService.GitLab;
+  const service = getIssueTrackerServiceFromUrl(url);
+  const isJira = service === IntegrationService.Jira;
 
   return (
     <Preview as="a" href={url} target="_blank" rel="noopener noreferrer">
@@ -47,6 +54,7 @@ const HoverPreviewIssue = React.forwardRef(function HoverPreviewIssue_(
                   service={service}
                   state={state}
                   size={18}
+                  issueTypeIconUrl={issueTypeIconUrl}
                 />
                 <span>
                   <Backticks content={title} />
@@ -54,12 +62,25 @@ const HoverPreviewIssue = React.forwardRef(function HoverPreviewIssue_(
                 </span>
               </Title>
               <Flex align="center" gap={6}>
-                <Avatar src={author.avatarUrl} size={18} />
+                <Avatar
+                  src={
+                    isJira && assignee
+                      ? assignee.avatarUrl
+                      : author.avatarUrl
+                  }
+                  size={18}
+                />
                 <Info>
-                  <Trans>
-                    {{ authorName }} created{" "}
-                    <Time dateTime={createdAt} addSuffix />
-                  </Trans>
+                  {isJira && assignee ? (
+                    <Trans>
+                      Assigned to {{ assigneeName: assignee.name }}
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      {{ authorName }} created{" "}
+                      <Time dateTime={createdAt} addSuffix />
+                    </Trans>
+                  )}
                 </Info>
               </Flex>
               {description && (

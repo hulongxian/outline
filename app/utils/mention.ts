@@ -1,5 +1,9 @@
 import type { IntegrationSettings, IntegrationType } from "@shared/types";
 import { IntegrationService, MentionType } from "@shared/types";
+import {
+  jiraUrlMatchesIntegration,
+  parseJiraIssueUrl,
+} from "@shared/utils/jiraUrl";
 import type Integration from "~/models/Integration";
 
 const gitlabSystemPaths = new Set([
@@ -56,6 +60,18 @@ export const isURLMentionable = ({
       return hostname === "gitlab.com" || hostname === gitlabHostname;
     }
 
+    case IntegrationService.Jira: {
+      const settings =
+        integration.settings as IntegrationSettings<IntegrationType.Embed>;
+      const jiraUrl = settings.jira?.url;
+
+      if (!jiraUrl) {
+        return false;
+      }
+
+      return jiraUrlMatchesIntegration(url, jiraUrl);
+    }
+
     default:
       return false;
   }
@@ -90,6 +106,10 @@ export const determineMentionType = ({
         : type === "project"
           ? MentionType.Project
           : undefined;
+    }
+
+    case IntegrationService.Jira: {
+      return parseJiraIssueUrl(url.toString()) ? MentionType.Issue : undefined;
     }
 
     case IntegrationService.GitLab: {

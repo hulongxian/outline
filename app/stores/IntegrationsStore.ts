@@ -41,6 +41,13 @@ class IntegrationsStore extends Store<Integration> {
       (integration) => integration.service === IntegrationService.Linear
     );
   }
+
+  @computed
+  get jira(): Integration<IntegrationType.Embed>[] {
+    return this.orderedData.filter(
+      (integration) => integration.service === IntegrationService.Jira
+    );
+  }
 }
 
 export default IntegrationsStore;

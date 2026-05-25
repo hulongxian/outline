@@ -2,6 +2,7 @@ import type { Next } from "koa";
 import { capitalize } from "es-toolkit/compat";
 import type { UserRole } from "@shared/types";
 import { UserRoleHelper } from "@shared/utils/UserRoleHelper";
+import Logger from "@server/logging/Logger";
 import tracer, {
   addTags,
   getRootSpanFromRequestContext,
@@ -67,6 +68,22 @@ export default function auth(options: AuthenticationOptions = {}) {
       if (options.optional) {
         ctx.state.auth = {};
       } else {
+        let transport: AuthTransport | undefined;
+        try {
+          transport = parseAuthentication(ctx).transport;
+        } catch {
+          transport = undefined;
+        }
+
+        Logger.info("authentication", "Request authentication failed", {
+          path: ctx.path,
+          method: ctx.method,
+          transport,
+          status: "status" in err ? err.status : undefined,
+          errorId: "id" in err ? err.id : undefined,
+          message: err instanceof Error ? err.message : String(err),
+        });
+
         throw err;
       }
     }
