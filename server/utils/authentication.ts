@@ -134,6 +134,16 @@ export async function signIn(
       );
     }
   } else {
+    // Self-hosted and other non-subdomain installs: return desktop clients via
+    // transfer token so the app can establish its own session (browser cookies
+    // are not shared with the Electron shell).
+    if (client === Client.Desktop) {
+      ctx.redirect(
+        `${team.url}/desktop-redirect?token=${user.getTransferToken(service)}`
+      );
+      return;
+    }
+
     ctx.cookies.set("accessToken", user.getSessionToken(expires, service), {
       sameSite: "lax",
       expires,
