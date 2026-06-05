@@ -5,7 +5,7 @@ import Document from "@server/models/Document";
 import Team from "@server/models/Team";
 import User from "@server/models/User";
 import Redis from "@server/storage/redis";
-import packageInfo from "../../package.json";
+import { getFullVersion } from "@shared/utils/packageVersion";
 import fetch from "./fetch";
 
 const UPDATES_URL = "https://updates.getoutline.com";
@@ -24,7 +24,7 @@ export async function checkUpdates() {
   const body = JSON.stringify({
     id,
     version: 1,
-    clientVersion: packageInfo.version,
+    clientVersion: getFullVersion(),
     analytics: {
       userCount,
       teamCount,

@@ -11,7 +11,7 @@ import { presentAttachment, presentCollection } from "@server/presenters";
 import type { CollectionJSONExport, JSONExportMetadata } from "@server/types";
 import ZipHelper from "@server/utils/ZipHelper";
 import { serializeFilename } from "@server/utils/fs";
-import packageJson from "../../../package.json";
+import { getFullVersion } from "@shared/utils/packageVersion";
 import ExportTask from "./ExportTask";
 
 export default class ExportJSONTask extends ExportTask {
@@ -52,7 +52,7 @@ export default class ExportJSONTask extends ExportTask {
 
     const metadata: JSONExportMetadata = {
       exportVersion: 1,
-      version: packageJson.version,
+      version: getFullVersion(),
       createdAt: new Date().toISOString(),
       createdById: fileOperation.userId,
       createdByEmail: user?.email ?? null,

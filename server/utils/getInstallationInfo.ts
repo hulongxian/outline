@@ -1,4 +1,7 @@
-import { version } from "../../package.json";
+import {
+  getFullVersion,
+  parseBaseVersion,
+} from "@shared/utils/packageVersion";
 import Logger from "@server/logging/Logger";
 import fetch from "./fetch";
 
@@ -10,10 +13,12 @@ function isFullReleaseVersion(versionName: string): boolean {
   return releaseRegex.test(versionName);
 }
 
-export async function getVersionInfo(currentVersion: string): Promise<{
+export async function getVersionInfo(fullVersion: string): Promise<{
   latestVersion: string;
   versionsBehind: number;
 }> {
+  const currentVersion = parseBaseVersion(fullVersion);
+
   try {
     let allVersions: string[] = [];
     let latestVersion: string | null = null;
@@ -78,5 +83,5 @@ export async function getVersionInfo(currentVersion: string): Promise<{
 }
 
 export function getVersion(): string {
-  return version;
+  return getFullVersion();
 }

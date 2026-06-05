@@ -1,20 +1,23 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { getFullVersion } from "@shared/utils/packageVersion";
 import Badge from "~/components/Badge";
 import { client } from "~/utils/ApiClient";
 import Logger from "~/utils/Logger";
-import { version as currentVersion } from "../../../../package.json";
 import SidebarLink from "./SidebarLink";
 
-export default function Version() {
+/**
+ * Link to upstream Outline releases with optional update status.
+ */
+export default function InstallationLink() {
   const [versionsBehind, setVersionsBehind] = useState(-1);
   const { t } = useTranslation();
+  const currentVersion = getFullVersion();
 
   useEffect(() => {
     async function loadVersionInfo() {
       try {
-        // Fetch version info from the server-side proxy
         const res = await client.post("/installation.info");
         if (res.data && res.data.versionsBehind >= 0) {
           setVersionsBehind(res.data.versionsBehind);

@@ -8,6 +8,7 @@ import styled from "styled-components";
 import { metaDisplay } from "@shared/utils/keyboard";
 import Flex from "~/components/Flex";
 import Scrollable from "~/components/Scrollable";
+import useCurrentUser from "~/hooks/useCurrentUser";
 import useSettingsConfig from "~/hooks/useSettingsConfig";
 import useStores from "~/hooks/useStores";
 import isCloudHosted from "~/utils/isCloudHosted";
@@ -20,11 +21,13 @@ import Section from "./components/Section";
 import SidebarButton from "./components/SidebarButton";
 import SidebarLink from "./components/SidebarLink";
 import ToggleButton from "./components/ToggleButton";
-import Version from "./components/Version";
+import InstallationLink from "./components/InstallationLink";
+import VersionNumber from "./components/VersionNumber";
 import useMobile from "~/hooks/useMobile";
 
 function SettingsSidebar() {
   const { ui, integrations } = useStores();
+  const user = useCurrentUser();
   const { t } = useTranslation();
   const history = useHistory();
   const location = useLocation();
@@ -94,11 +97,17 @@ function SettingsSidebar() {
               </Header>
             </Section>
           ))}
-          {!isCloudHosted && (
-            <Section>
-              <Header title={t("Installation")} />
-              <Version />
-            </Section>
+          {!isCloudHosted && user.isAdmin && (
+            <>
+              <Section>
+                <Header title={t("Installation")} />
+                <InstallationLink />
+              </Section>
+              <Section>
+                <Header title={t("Version number")} />
+                <VersionNumber />
+              </Section>
+            </>
           )}
         </Scrollable>
       </Flex>

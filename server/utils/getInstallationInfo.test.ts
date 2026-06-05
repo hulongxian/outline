@@ -1,15 +1,36 @@
 import { http, HttpResponse } from "msw";
 import { server } from "@server/test/msw";
+import { getFullVersion } from "@shared/utils/packageVersion";
 import { getVersionInfo, getVersion } from "./getInstallationInfo";
 
 const dockerHubUrl =
   "https://hub.docker.com/v2/repositories/outlinewiki/outline/tags";
 
 describe("getVersion", () => {
-  it("should return the current version", () => {
-    const version = getVersion();
-    expect(version).toBeDefined();
-    expect(typeof version).toBe("string");
+  it("should return the full installation version", () => {
+    expect(getVersion()).toBe(getFullVersion());
+  });
+});
+
+describe("getVersionInfo with sub-version", () => {
+  const currentVersion = "0.80.0_3";
+
+  it("should compare against the upstream base version on Docker Hub", async () => {
+    server.use(
+      http.get(dockerHubUrl, () =>
+        HttpResponse.json({
+          results: [{ name: "0.81.0" }, { name: "0.80.0" }, { name: "0.79.0" }],
+          next: null,
+        })
+      )
+    );
+
+    const result = await getVersionInfo(currentVersion);
+
+    expect(result).toEqual({
+      latestVersion: "0.81.0",
+      versionsBehind: 1,
+    });
   });
 });
 

@@ -19,7 +19,7 @@ import { commentTools } from "@server/tools/comments";
 import { documentTools } from "@server/tools/documents";
 import { fetchTool } from "@server/tools/fetch";
 import { userTools } from "@server/tools/users";
-import { version } from "../../../package.json";
+import { getFullVersion } from "@shared/utils/packageVersion";
 
 const app = new Koa();
 const router = new Router();
@@ -46,7 +46,7 @@ function createMcpServer(scopes: string[], guidance?: string): McpServer {
   const server = new McpServer(
     {
       name: "outline",
-      version,
+      version: getFullVersion(),
     },
     {
       capabilities: {

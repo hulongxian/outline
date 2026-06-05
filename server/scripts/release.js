@@ -25,6 +25,8 @@ const opts = {
 const packagePath = path.resolve(root, "package.json");
 const packageJson = require(packagePath);
 const currentVersion = packageJson.version;
+const currentSubVersion =
+  typeof packageJson.subVersion === "number" ? packageJson.subVersion : 0;
 
 // Calculate new version based on input
 let newVersion;
@@ -45,8 +47,8 @@ if (
   exit(1);
 }
 
-console.log(`\nCurrent version: ${currentVersion}`);
-console.log(`New version: ${newVersion}\n`);
+console.log(`\nCurrent version: ${currentVersion}_${currentSubVersion}`);
+console.log(`New version: ${newVersion}_0 (sub-version resets on upstream bump)\n`);
 
 // Create readline interface for confirmation
 const rl = readline.createInterface({
@@ -66,6 +68,7 @@ rl.question("Do you want to proceed with this release? (Y/n): ", (answer) => {
   try {
     // Update package.json
     packageJson.version = newVersion;
+    packageJson.subVersion = 0;
     fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + "\n");
     console.log("Updated package.json");
 
