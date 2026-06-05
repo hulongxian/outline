@@ -393,6 +393,6 @@
     "ws@npm:~8.17.1": "^8.20.1"
   },
   "version": "1.7.1",
-  "subVersion": 0,
+  "subVersion": 1,
   "packageManager": "yarn@4.11.0"
 }
